@@ -6,7 +6,7 @@ import { GITHUB_AUTH_MUTATION, ALL_USERS, TOTAL_USER_PHOTO, ME, COMBINED_QUERY }
 
 const Me = ({ logout, requestCode, signingIn }) => (
     <>
-        <Query query={{...ALL_USERS,...ME}} fetchPolicy="cache-and-network">
+        <Query query={{...ALL_USERS,...ME}} fetchPolicy="network-only">
             {({ loading, data, error }) => {
                 if (loading) return <p>Users are loading </p>;
                 if (error) return <p>Error: {error.message}</p>;

@@ -1,6 +1,6 @@
 import React from 'react'
-import { Query, Mutation } from 'react-apollo';
-import { ALL_USERS, ADD_FAKE_USER, COMBINED_QUERY } from '../index';
+import { Query, Mutation, Subscription } from 'react-apollo';
+import { ALL_USERS, ADD_FAKE_USER, COMBINED_QUERY, LISTEN_FOR_USERS } from '../index';
 
 const Users = () => (
     <>
@@ -13,6 +13,15 @@ const Users = () => (
                 )
             }}
         </Query>
+        <Subscription subscription={LISTEN_FOR_USERS}>
+            {({ data, loading }) => loading ? <p>loading a new user</p> :
+                <div>
+                    <h1>Subscription</h1>
+                    <img src={data.newUser.avatar} width={48} height={48} alt={data.newUser.name} />
+                    <h2>{data.newUser.name}</h2>
+                </div>
+        }
+        </Subscription>
     </>
 )
 
@@ -50,8 +59,9 @@ const UserList = ({ count, users, refetchUsers }) => (
 const UserListItem = ({ name, avatar }) => (
     <li>
         <img src={avatar} width={48} height={48} alt={name} />
-        {name}
+        <h2>{name}</h2>
     </li>
 )
+
 
 export default Users;

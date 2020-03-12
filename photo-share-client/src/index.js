@@ -1,8 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import ApolloClient, { gql, InMemoryCache } from 'apollo-boost';
+import { gql, InMemoryCache, HttpLink, ApolloLink, split, ApolloClient } from 'apollo-boost';
+import { WebSocketLink } from 'apollo-link-ws';
+import { getMainDefinition } from 'apollo-utilities'
 import { ApolloProvider } from 'react-apollo';
 import { persistCache } from 'apollo-cache-persist'
+
 import './index.css';
 import App from './App';
 
@@ -20,17 +23,30 @@ if (localStorage['apollo-cache-persist']) {
 
 export const uri = 'http://localhost:4000/graphql';
 
-export const client = new ApolloClient({
-    cache,
-    uri,
-    request: operation => {
-      operation.setContext(context => ({
-            headers: {
+const httpLink = new HttpLink({ uri });
+
+const wsLink = new WebSocketLink({ uri: 'ws://localhost:4000/graphql', options: { reconnect: true } });
+
+const authLink = new ApolloLink((operation, forward) => {
+    operation.setContext(context => ({
+        headers: {
                 ...context.headers,
                 authorization: localStorage.getItem('token')
-          }
-      }));
-    }
+        }
+    }))
+    return forward(operation)
+})
+
+const httpAuthLink = authLink.concat(httpLink);
+
+const link = split(({ query }) => {
+    const { kind, operation } = getMainDefinition(query);
+    return kind === 'OperationDefinition' && operation === 'subscription'
+}, wsLink, httpAuthLink)
+
+export const client = new ApolloClient({
+    cache,
+    link
 });
 
 export const TOTAL_USER_PHOTO = gql`
@@ -48,6 +64,7 @@ export const ME = gql`
     }
 
     fragment userInfo on User {
+        id
         githubLogin
         name
         avatar
@@ -99,6 +116,26 @@ export const COMBINED_QUERY = gql`
         githubLogin
     }
 `;
+
+export const LISTEN_FOR_USERS = gql`
+    subscription LISTEN_FOR_USERS {
+        newUser{
+            githubLogin
+            name
+            avatar
+        }
+    }
+`;
+
+export const LISTEN_FOR_PHOTOS = gql`
+    subscription {
+        newPhoto {
+            id
+            name
+            url
+        }
+    }
+`
 
 // cache.writeQuery({ query: COMBINED_QUERY, data: { me: null, allUsers: [], totalUsers: 0, totalPhotos: 0 } });
 
